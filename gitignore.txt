@@ -1,0 +1,5 @@
+/env
+*/__jac_gen__
+/__jac_gen__
+/.jac_mypy_cache
+project_experience.md

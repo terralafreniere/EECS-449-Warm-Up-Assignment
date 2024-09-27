@@ -25,21 +25,6 @@ walker interact {
             visit session_node;
         }
     }
-
-    # can chat with Session entry {
-    #     here.chat_history.append({"role": "user", "content": self.message});
-    #     data = rag_engine.get_from_chroma(query=self.message);
-    #     response = here.llm_chat(
-    #         message=self.message,
-    #         chat_history=here.chat_history,
-    #         agent_role="You are a conversation agent designed to help users with their queries based on the documents provided",
-    #         context=data
-    #     );
-
-    #     here.chat_history.append({"role": "assistant", "content": response});
-
-    #     report {"response": response};
-    # }
 }
 
 walker infer {
@@ -51,6 +36,7 @@ walker infer {
             router_node = here ++> Router();
             router_node ++> RagChat();
             router_node ++> QAChat();
+            router_node ++> RecChat();
             visit router_node;
         }
     }
@@ -90,7 +76,8 @@ node Session {
 
 enum ChatType {
     RAG : 'Need to use Retrievable information in specific documents to respond' = "RAG",
-    QA : 'Given context is enough for an answer' = "user_qa"
+    QA : 'Given context is enough for an answer' = "user_qa",
+    REC : 'Give a recommendation based on user preferences and history' = "user_clarification"
 }
 
 
@@ -124,6 +111,19 @@ node QAChat :Chat: {
             agent_role:'role of the agent responding':str
                 ) -> 'response':str by llm();
         here.response = respond_with_llm(here.message, here.chat_history, agent_role="You are a conversation agent designed to help users with their queries");
+    }
+}
+
+node RecChat :Chat: {
+    has chat_type: ChatType = ChatType.REC;
+    
+    can respond with infer entry {
+        can 'Respond to message using chat_history as context and agent_role as the goal of the agent'
+        respond_with_llm(   message:'current message':str, 
+            chat_history: 'chat history':list[dict],
+            agent_role:'role of the agent responding':str
+                ) -> 'response':str by llm();
+        here.response = respond_with_llm(here.message, here.chat_history, agent_role="You are a conversation agent designed to give users recommendations based on their preferences");
     }
 }
 
